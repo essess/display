@@ -11,11 +11,11 @@
 CAN_HandleTypeDef can =
 {
   .Instance       = CAN1,
-  .Init.Prescaler = 16,
+  .Init.Prescaler = 3,
   .Init.Mode      = CAN_MODE_NORMAL,
-  .Init.SJW       = CAN_SJW_1TQ,
-  .Init.BS1       = CAN_BS1_1TQ,
-  .Init.BS2       = CAN_BS2_1TQ,
+  .Init.SJW       = CAN_SJW_4TQ,
+  .Init.BS1       = CAN_BS1_5TQ,
+  .Init.BS2       = CAN_BS2_6TQ,
   .Init.TTCM      = DISABLE,
   .Init.ABOM      = DISABLE,
   .Init.AWUM      = DISABLE,
@@ -32,7 +32,7 @@ int
 
   if( HAL_Init() == HAL_OK )
   {
-    static RCC_OscInitTypeDef const oc =
+    static RCC_OscInitTypeDef const oi =
     {
       .OscillatorType = RCC_OSCILLATORTYPE_HSE,
       .HSEState       = RCC_HSE_ON,
@@ -41,11 +41,11 @@ int
       .PLL.PLLSource  = RCC_PLLSOURCE_HSE,
       .PLL.PLLMUL     = RCC_PLL_MUL9
     };
-    HAL_RCC_OscConfig( &oc );
+    HAL_RCC_OscConfig( &oi );
 
     static RCC_ClkInitTypeDef const ci =
     {
-      .ClockType      = RCC_CLOCKTYPE_SYSCLK|RCC_CLOCKTYPE_PCLK1,
+      .ClockType      = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1,
       .SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK,
       .AHBCLKDivider  = RCC_SYSCLK_DIV1,
       .APB1CLKDivider = RCC_HCLK_DIV2,
