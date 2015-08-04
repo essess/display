@@ -9,11 +9,11 @@
       arm_core_type="Cortex-M3"
       arm_fpu_type="None"
       arm_gcc_target="arm-unknown-eabi"
-      arm_linker_heap_size="1024"
+      arm_linker_heap_size="0"
       arm_linker_jtag_pad_pre_dr="1"
       arm_linker_jtag_pad_pre_ir="5"
       arm_linker_process_stack_size="0"
-      arm_linker_stack_size="1024"
+      arm_linker_stack_size="512"
       arm_simulator_memory_simulation_filename="$(TargetsDir)/STM32/STM32SimulatorMemory.dll"
       arm_simulator_memory_simulation_parameter="STM32F103C8;0x10000;0x5000"
       arm_target_connect_with_reset="No"
@@ -25,7 +25,7 @@
       batch_build_configurations="dbg;rel"
       build_intermediate_directory="out/$(Configuration)/obj"
       build_output_directory="out/$(Configuration)"
-      c_user_include_directories="$(ProjectDir)/src/inc;$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Drivers/CMSIS/Device/ST/STM32F1xx/Include;$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Drivers/CMSIS/Include;$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Drivers/STM32F1xx_HAL_Driver/Inc"
+      c_user_include_directories="$(ProjectDir)/src/inc;$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Drivers/CMSIS/Device/ST/STM32F1xx/Include;$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Drivers/CMSIS/Include;$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Drivers/STM32F1xx_HAL_Driver/Inc;$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/include;$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3"
       debug_initial_breakpoint_set_option="Only With No Breakpoints Set"
       debug_register_definition_file="$(TargetsDir)/STM32/STM32F103xx_Peripherals.xml"
       linker_memory_map_file="$(TargetsDir)/STM32/STM32F103C8_MemoryMap.xml"
@@ -53,6 +53,7 @@
       <folder Name="inc">
         <file file_name="$(ProjectDir)/src/inc/stm32f1xx_hal_conf.h" />
         <file file_name="$(ProjectDir)/src/inc/stm32f1xx_it.h" />
+        <file file_name="$(ProjectDir)/src/inc/FreeRTOSConfig.h" />
       </folder>
       <file file_name="$(ProjectDir)/src/thumb_crt0.s" />
       <file file_name="$(ProjectDir)/src/STM32_Startup.s">
@@ -64,6 +65,7 @@
       <file file_name="$(ProjectDir)/src/system_stm32f1xx.c" />
       <file file_name="$(ProjectDir)/src/stm32f1xx_it.c" />
       <file file_name="$(ProjectDir)/src/stm32f1xx_hal_msp.c" />
+      <file file_name="$(ProjectDir)/src/freertos.c" />
     </folder>
     <folder Name="HAL">
       <folder Name="inc">
@@ -77,6 +79,25 @@
       <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc.c" />
       <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_flash.c" />
       <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_can.c" />
+    </folder>
+    <folder Name="FreeRTOS">
+      <folder Name="inc">
+        <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h" />
+        <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/include/croutine.h" />
+        <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h" />
+        <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h" />
+        <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h" />
+        <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h" />
+        <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/include/task.h" />
+      </folder>
+      <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3/port.c" />
+      <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_1.c" />
+      <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/croutine.c" />
+      <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/event_groups.c" />
+      <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/list.c" />
+      <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/queue.c" />
+      <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/tasks.c" />
+      <file file_name="$(ProjectDir)/src/STM32Cube_FW_F1_V1.2.0/Middlewares/Third_Party/FreeRTOS/Source/timers.c" />
     </folder>
   </project>
   <configuration

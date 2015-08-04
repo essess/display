@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
-  * @file    stm32f1xx_it.c
-  * @brief   Interrupt Service Routines.
+  * File Name          : freertos.c
+  * Description        : Code for freertos applications
   ******************************************************************************
   *
   * COPYRIGHT(c) 2015 STMicroelectronics
@@ -30,73 +30,57 @@
   *
   ******************************************************************************
   */
+
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f1xx_hal.h"
-#include "stm32f1xx_it.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
-/* External variables --------------------------------------------------------*/
-extern void xPortSysTickHandler(void);
-extern CAN_HandleTypeDef can;
+/* USER CODE BEGIN Includes */     
 
-/******************************************************************************/
-/*            Cortex-M3 Processor Interruption and Exception Handlers         */
-/******************************************************************************/
+/* USER CODE END Includes */
 
-/**
-* @brief This function handles System tick timer.
-*/
-void SysTick_Handler(void)
+/* Variables -----------------------------------------------------------------*/
+
+/* USER CODE BEGIN Variables */
+
+/* USER CODE END Variables */
+
+/* Function prototypes -------------------------------------------------------*/
+
+/* USER CODE BEGIN FunctionPrototypes */
+
+/* USER CODE END FunctionPrototypes */
+
+/* Hook prototypes */
+void vApplicationIdleHook(void);
+void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName);
+
+/* USER CODE BEGIN 2 */
+void vApplicationIdleHook( void )
 {
-  HAL_IncTick( );
-  if ( xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED )
-  {
-    xPortSysTickHandler( );
-  }
+   /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
+   to 1 in FreeRTOSConfig.h. It will be called on each iteration of the idle
+   task. It is essential that code added to this hook function never attempts
+   to block in any way (for example, call xQueueReceive() with a block time
+   specified, or call vTaskDelay()). If the application makes use of the
+   vTaskDelete() API function (as this demo application does) then it is also
+   important that vApplicationIdleHook() is permitted to return to its calling
+   function, because it is the responsibility of the idle task to clean up
+   memory allocated by the kernel to any task that has since been deleted. */
 }
+/* USER CODE END 2 */
 
-/******************************************************************************/
-/* STM32F1xx Peripheral Interrupt Handlers                                    */
-/* Add here the Interrupt Handlers for the used peripherals.                  */
-/* For the available peripheral interrupt handler names,                      */
-/* please refer to the startup file (startup_stm32f1xx.s).                    */
-/******************************************************************************/
-
-/**
-* @brief This function handles USB high priority or CAN TX interrupts.
-*/
-void
-  USB_HP_CAN1_TX_IRQHandler( void )
+/* USER CODE BEGIN 4 */
+void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName)
 {
-  HAL_CAN_IRQHandler( &can );
+   /* Run time stack overflow checking is performed if
+   configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
+   called if a stack overflow is detected. */
 }
+/* USER CODE END 4 */
 
-/**
-* @brief This function handles USB low priority or CAN RX0 interrupts.
-*/
-void
-  USB_LP_CAN1_RX0_IRQHandler( void )
-{
-  HAL_CAN_IRQHandler( &can );
-}
-
-/**
-* @brief This function handles CAN RX1 interrupt.
-*/
-void
-  CAN1_RX1_IRQHandler( void )
-{
-  HAL_CAN_IRQHandler( &can );
-}
-
-/**
-* @brief This function handles CAN SCE interrupt.
-*/
-void
-  CAN1_SCE_IRQHandler( void )
-{
-  HAL_CAN_IRQHandler( &can );
-}
+/* USER CODE BEGIN Application */
+     
+/* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

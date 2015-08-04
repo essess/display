@@ -48,8 +48,9 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f1xx_hal.h"
 #include <debugio.h>
+#include <assert.h>
+#include "stm32f1xx_hal.h"
 
 /** @addtogroup STM32F1xx_HAL_Driver
   * @{
@@ -77,13 +78,34 @@
   */
 void HAL_MspInit(void)
 {
-  __HAL_RCC_AFIO_CLK_ENABLE();
-  HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-  /* System interrupt init*/
-  /* SysTick_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-  /**NOJTAG: JTAG-DP Disabled and SW-DP Enabled */
   __HAL_AFIO_REMAP_SWJ_NOJTAG();
+  __HAL_RCC_AFIO_CLK_ENABLE( );
+  HAL_NVIC_SetPriorityGrouping( NVIC_PRIORITYGROUP_4 );
+
+  RCC_OscInitTypeDef oi =
+  {
+    .OscillatorType = RCC_OSCILLATORTYPE_HSE,
+    .HSEState       = RCC_HSE_ON,
+    .HSEPredivValue = RCC_HSE_PREDIV_DIV1,
+    .PLL.PLLState   = RCC_PLL_ON,
+    .PLL.PLLSource  = RCC_PLLSOURCE_HSE,
+    .PLL.PLLMUL     = RCC_PLL_MUL9
+  };
+  HAL_RCC_OscConfig( &oi );
+
+  RCC_ClkInitTypeDef ci =
+  {
+    .ClockType      = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1,
+    .SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK,
+    .AHBCLKDivider  = RCC_SYSCLK_DIV1,
+    .APB1CLKDivider = RCC_HCLK_DIV2,
+    .APB2CLKDivider = RCC_HCLK_DIV1
+  };
+  HAL_RCC_ClockConfig( &ci, FLASH_LATENCY_2 );
+
+  HAL_NVIC_SetPriority( SysTick_IRQn, 0, 0 );
+  HAL_SYSTICK_CLKSourceConfig( SYSTICK_CLKSOURCE_HCLK );
+  HAL_SYSTICK_Config( HAL_RCC_GetHCLKFreq()/1000 );
 }
 
 /**
@@ -97,65 +119,51 @@ void HAL_MspDeInit(void)
    */
 }
 
-void HAL_CAN_MspInit(CAN_HandleTypeDef* pcan)
+void
+  HAL_CAN_MspInit( CAN_HandleTypeDef *pcan )
 {
-
-  GPIO_InitTypeDef GPIO_InitStruct;
-  if(pcan->Instance==CAN1)
+  assert( pcan->Instance == CAN1 );
+  if( pcan->Instance == CAN1 )
   {
-    /* Peripheral clock enable */
-    __CAN1_CLK_ENABLE();
+    GPIO_InitTypeDef gi;
 
-    /**CAN GPIO Configuration
-    PB8     ------> CAN_RX
-    PB9     ------> CAN_TX
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_8;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    __CAN1_CLK_ENABLE( );
 
-    GPIO_InitStruct.Pin = GPIO_PIN_9;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    gi.Pin  = GPIO_PIN_8;
+    gi.Mode = GPIO_MODE_INPUT;
+    gi.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init( GPIOB, &gi );    /**< CAN_RX: PB8 */
 
-    __HAL_AFIO_REMAP_CAN1_2();
-    /* Peripheral interrupt init*/
-    HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 10, 0);
-    HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
-    HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 10, 0);
-    HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
-    HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 10, 0);
-    HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
-    HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 10, 0);
-    HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
+    gi.Pin   = GPIO_PIN_9;
+    gi.Mode  = GPIO_MODE_AF_PP;
+    gi.Speed = GPIO_SPEED_HIGH;
+    HAL_GPIO_Init( GPIOB, &gi );    /**< CAN_TX: PB9 */
+
+    __HAL_AFIO_REMAP_CAN1_2( );     /**< leave USB pins available */
+
+    HAL_NVIC_SetPriority( USB_HP_CAN1_TX_IRQn, 10, 0 );
+    HAL_NVIC_EnableIRQ( USB_HP_CAN1_TX_IRQn );
+    HAL_NVIC_SetPriority( USB_LP_CAN1_RX0_IRQn, 10, 0 );
+    HAL_NVIC_EnableIRQ( USB_LP_CAN1_RX0_IRQn );
+    HAL_NVIC_SetPriority( CAN1_RX1_IRQn, 10, 0 );
+    HAL_NVIC_EnableIRQ( CAN1_RX1_IRQn );
+    HAL_NVIC_SetPriority( CAN1_SCE_IRQn, 10, 0 );
+    HAL_NVIC_EnableIRQ( CAN1_SCE_IRQn );
   }
 }
 
-void HAL_CAN_MspDeInit(CAN_HandleTypeDef* pcan)
+void
+  HAL_CAN_MspDeInit( CAN_HandleTypeDef *pcan )
 {
-
-  if(pcan->Instance==CAN1)
+  assert( pcan->Instance == CAN1 );
+  if( pcan->Instance == CAN1 )
   {
-    /* Peripheral clock disable */
     __CAN1_CLK_DISABLE();
-
-    /**CAN GPIO Configuration
-    PB8     ------> CAN_RX
-    PB9     ------> CAN_TX
-    */
-    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_8|GPIO_PIN_9);
-
-    /* Peripheral interrupt DeInit*/
-    HAL_NVIC_DisableIRQ(USB_HP_CAN1_TX_IRQn);
-
-    HAL_NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
-
-    HAL_NVIC_DisableIRQ(CAN1_RX1_IRQn);
-
-    HAL_NVIC_DisableIRQ(CAN1_SCE_IRQn);
-
+    HAL_GPIO_DeInit( GPIOB, GPIO_PIN_8 | GPIO_PIN_9 );
+    HAL_NVIC_DisableIRQ( USB_HP_CAN1_TX_IRQn );
+    HAL_NVIC_DisableIRQ( USB_LP_CAN1_RX0_IRQn );
+    HAL_NVIC_DisableIRQ( CAN1_RX1_IRQn );
+    HAL_NVIC_DisableIRQ( CAN1_SCE_IRQn );
   }
 }
 

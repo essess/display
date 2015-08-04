@@ -5,8 +5,11 @@
  * contact me at the above email address and I can provide you with one.
  */
 
+#include <assert.h>
 #include <stdlib.h>
 #include "stm32f1xx_hal.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 CAN_HandleTypeDef can =
 {
@@ -24,57 +27,56 @@ CAN_HandleTypeDef can =
   .Init.TXFP      = DISABLE
 };
 
+static void
+  blinky( void *parg )
+{
+  (void)parg;           /**< unused */
+
+  GPIO_InitTypeDef gi =
+  {
+    .Pin    = GPIO_PIN_13,
+    .Mode   = GPIO_MODE_OUTPUT_PP,
+    .Speed  = GPIO_SPEED_LOW
+  };
+
+  __GPIOC_CLK_ENABLE( );
+  HAL_GPIO_Init( GPIOC, &gi );
+
+  for(;;)
+  {
+    HAL_GPIO_WritePin( GPIOC, GPIO_PIN_13, GPIO_PIN_RESET );  /**< on  */
+    vTaskDelay( 300 );
+    HAL_GPIO_WritePin( GPIOC, GPIO_PIN_13, GPIO_PIN_SET );    /**< off */
+    vTaskDelay( 700 );
+  }
+}
+
 int
   main( int  argc,
         char *argv[] )
 {
   (void)argc, (void)argv; /**< unused */
 
-  if( HAL_Init() == HAL_OK )
+  HAL_StatusTypeDef hs = HAL_Init( ); assert( hs == HAL_OK );
+  if( hs == HAL_OK )
   {
-    static RCC_OscInitTypeDef const oi =
+    hs = HAL_CAN_Init( &can ); assert( hs == HAL_OK );
+    if( hs == HAL_OK )
     {
-      .OscillatorType = RCC_OSCILLATORTYPE_HSE,
-      .HSEState       = RCC_HSE_ON,
-      .HSEPredivValue = RCC_HSE_PREDIV_DIV1,
-      .PLL.PLLState   = RCC_PLL_ON,
-      .PLL.PLLSource  = RCC_PLLSOURCE_HSE,
-      .PLL.PLLMUL     = RCC_PLL_MUL9
-    };
-    HAL_RCC_OscConfig( &oi );
-
-    static RCC_ClkInitTypeDef const ci =
-    {
-      .ClockType      = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1,
-      .SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK,
-      .AHBCLKDivider  = RCC_SYSCLK_DIV1,
-      .APB1CLKDivider = RCC_HCLK_DIV2,
-      .APB2CLKDivider = RCC_HCLK_DIV1
-    };
-    HAL_RCC_ClockConfig( &ci, FLASH_LATENCY_2 );
-
-    HAL_SYSTICK_Config( HAL_RCC_GetHCLKFreq()/1000 );
-    HAL_SYSTICK_CLKSourceConfig( SYSTICK_CLKSOURCE_HCLK );
-
-    HAL_CAN_Init( &can );
-
-    static GPIO_InitTypeDef gi =
-    {
-      .Pin    = GPIO_PIN_13,
-      .Mode   = GPIO_MODE_OUTPUT_PP,
-      .Speed  = GPIO_SPEED_LOW
-    };
-
-    __GPIOC_CLK_ENABLE( );
-    HAL_GPIO_Init( GPIOC, &gi );
-
-    for(;;)
-    {
-      HAL_GPIO_WritePin( GPIOC, GPIO_PIN_13, GPIO_PIN_RESET );  /**< on  */
-      HAL_Delay( 300 );
-      HAL_GPIO_WritePin( GPIOC, GPIO_PIN_13, GPIO_PIN_SET );    /**< off */
-      HAL_Delay( 700 );
+      TaskHandle_t t = 0;
+      BaseType_t const ts =
+        xTaskCreate( &blinky,
+                     "blinky",
+                     512,
+                     0,
+                     tskIDLE_PRIORITY+1,
+                     &t );
+      assert( ts == pdPASS ); (void)sizeof(ts);
+      assert( t != 0 );
+      vTaskStartScheduler( );
+      hs = HAL_CAN_DeInit( &can ); assert( hs == HAL_OK );
     }
+    hs = HAL_DeInit( ); assert( hs == HAL_OK );
   }
-  return( EXIT_FAILURE );
+  return EXIT_FAILURE;
 }
