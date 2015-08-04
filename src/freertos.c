@@ -32,10 +32,12 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include "stm32f1xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include <debugio.h>
 
-/* USER CODE BEGIN Includes */     
+/* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
 
@@ -52,8 +54,9 @@
 /* USER CODE END FunctionPrototypes */
 
 /* Hook prototypes */
-void vApplicationIdleHook(void);
-void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName);
+void vApplicationIdleHook( void );
+void vApplicationTickHook( void );
+void vApplicationStackOverflowHook( TaskHandle_t xTask, signed char *pcTaskName );
 
 /* USER CODE BEGIN 2 */
 void vApplicationIdleHook( void )
@@ -67,20 +70,30 @@ void vApplicationIdleHook( void )
    important that vApplicationIdleHook() is permitted to return to its calling
    function, because it is the responsibility of the idle task to clean up
    memory allocated by the kernel to any task that has since been deleted. */
+
+  HAL_GPIO_WritePin( GPIOC, GPIO_PIN_13, GPIO_PIN_SET  );     /**< off */
+  __WFI();
 }
 /* USER CODE END 2 */
+
+void vApplicationTickHook( void )
+{
+  HAL_GPIO_WritePin( GPIOC, GPIO_PIN_13, GPIO_PIN_RESET );    /**< on  */
+}
 
 /* USER CODE BEGIN 4 */
 void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName)
 {
-   /* Run time stack overflow checking is performed if
-   configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
-   called if a stack overflow is detected. */
+  /* Run time stack overflow checking is performed if
+     configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
+     called if a stack overflow is detected. */
+
+  debug_runtime_error( (char *)pcTaskName );
 }
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Application */
-     
+
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

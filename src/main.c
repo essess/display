@@ -28,25 +28,16 @@ CAN_HandleTypeDef can =
 };
 
 static void
-  blinky( void *parg )
+  burn_cycles( void *parg )
 {
   (void)parg;           /**< unused */
 
-  GPIO_InitTypeDef gi =
-  {
-    .Pin    = GPIO_PIN_13,
-    .Mode   = GPIO_MODE_OUTPUT_PP,
-    .Speed  = GPIO_SPEED_LOW
-  };
-
-  __GPIOC_CLK_ENABLE( );
-  HAL_GPIO_Init( GPIOC, &gi );
-
+  /* watch load indicator led while performing the following: */
   for(;;)
   {
-    HAL_GPIO_WritePin( GPIOC, GPIO_PIN_13, GPIO_PIN_RESET );  /**< on  */
-    vTaskDelay( 300 );
-    HAL_GPIO_WritePin( GPIOC, GPIO_PIN_13, GPIO_PIN_SET );    /**< off */
+    /* dominate core for a few ms ... */
+    HAL_Delay( 300 );
+    /* be nice for a few ms ...       */
     vTaskDelay( 700 );
   }
 }
@@ -60,13 +51,23 @@ int
   HAL_StatusTypeDef hs = HAL_Init( ); assert( hs == HAL_OK );
   if( hs == HAL_OK )
   {
+    GPIO_InitTypeDef load_led =
+    {
+      .Pin    = GPIO_PIN_13,
+      .Mode   = GPIO_MODE_OUTPUT_PP,
+      .Speed  = GPIO_SPEED_LOW
+    };
+
+    __GPIOC_CLK_ENABLE( );
+    HAL_GPIO_Init( GPIOC, &load_led );
+
     hs = HAL_CAN_Init( &can ); assert( hs == HAL_OK );
     if( hs == HAL_OK )
     {
       TaskHandle_t t = 0;
       BaseType_t const ts =
-        xTaskCreate( &blinky,
-                     "blinky",
+        xTaskCreate( &burn_cycles,
+                     "burn_cycles",
                      512,
                      0,
                      tskIDLE_PRIORITY+1,
