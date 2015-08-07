@@ -52,8 +52,13 @@
     <folder Name="src">
       <folder Name="inc">
         <file file_name="$(ProjectDir)/src/inc/stm32f1xx_hal_conf.h" />
-        <file file_name="$(ProjectDir)/src/inc/stm32f1xx_it.h" />
         <file file_name="$(ProjectDir)/src/inc/FreeRTOSConfig.h" />
+        <folder Name="task">
+          <file file_name="$(ProjectDir)/src/inc/task/task_can.h" />
+        </folder>
+      </folder>
+      <folder Name="tasks">
+        <file file_name="$(ProjectDir)/src/tasks/task_can.c" />
       </folder>
       <file file_name="$(ProjectDir)/src/thumb_crt0.s" />
       <file file_name="$(ProjectDir)/src/STM32_Startup.s">
@@ -63,7 +68,6 @@
       </file>
       <file file_name="$(ProjectDir)/src/main.c" />
       <file file_name="$(ProjectDir)/src/system_stm32f1xx.c" />
-      <file file_name="$(ProjectDir)/src/stm32f1xx_it.c" />
       <file file_name="$(ProjectDir)/src/stm32f1xx_hal_msp.c" />
       <file file_name="$(ProjectDir)/src/freertos.c" />
     </folder>

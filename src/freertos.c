@@ -71,15 +71,13 @@ void vApplicationIdleHook( void )
    function, because it is the responsibility of the idle task to clean up
    memory allocated by the kernel to any task that has since been deleted. */
 
+  __disable_irq( );
   HAL_GPIO_WritePin( GPIOC, GPIO_PIN_13, GPIO_PIN_SET  );     /**< off */
   __WFI();
+  HAL_GPIO_WritePin( GPIOC, GPIO_PIN_13, GPIO_PIN_RESET );    /**< on  */
+  __enable_irq( );
 }
 /* USER CODE END 2 */
-
-void vApplicationTickHook( void )
-{
-  HAL_GPIO_WritePin( GPIOC, GPIO_PIN_13, GPIO_PIN_RESET );    /**< on  */
-}
 
 /* USER CODE BEGIN 4 */
 void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName)

@@ -11,21 +11,12 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-CAN_HandleTypeDef can =
-{
-  .Instance       = CAN1,
-  .Init.Prescaler = 3,
-  .Init.Mode      = CAN_MODE_NORMAL,
-  .Init.SJW       = CAN_SJW_4TQ,
-  .Init.BS1       = CAN_BS1_5TQ,
-  .Init.BS2       = CAN_BS2_6TQ,
-  .Init.TTCM      = DISABLE,
-  .Init.ABOM      = DISABLE,
-  .Init.AWUM      = DISABLE,
-  .Init.NART      = DISABLE,
-  .Init.RFLM      = DISABLE,
-  .Init.TXFP      = DISABLE
-};
+#include "task/task_can.h"
+
+extern void xPortSysTickHandler( void );
+
+#define TASK_BURN_CYCLES_PRIO     ( 1 )
+#define TASK_BURN_CYCLES_STKSIZE  ( 1024 )
 
 static void
   burn_cycles( void *parg )
@@ -42,42 +33,58 @@ static void
   }
 }
 
+static int
+  create_task_burn_cycles( void )
+{
+  TaskHandle_t t = 0;
+  BaseType_t const stat =
+    xTaskCreate( &burn_cycles,
+                 "burn_cycles",
+                 TASK_BURN_CYCLES_STKSIZE,
+                 0,
+                 TASK_BURN_CYCLES_PRIO,
+                 &t );
+  assert( stat == pdPASS );
+  assert( t );
+
+  return ((stat == pdPASS) && t) ? 0 : ~0 ;
+}
+
 int
   main( int  argc,
         char *argv[] )
 {
   (void)argc, (void)argv; /**< unused */
 
-  HAL_StatusTypeDef hs = HAL_Init( ); assert( hs == HAL_OK );
+  HAL_StatusTypeDef hs = HAL_Init( );
+  assert( hs == HAL_OK );
+
   if( hs == HAL_OK )
   {
-    GPIO_InitTypeDef load_led =
-    {
-      .Pin    = GPIO_PIN_13,
-      .Mode   = GPIO_MODE_OUTPUT_PP,
-      .Speed  = GPIO_SPEED_LOW
-    };
+    int stat = 0;
 
-    __GPIOC_CLK_ENABLE( );
-    HAL_GPIO_Init( GPIOC, &load_led );
+    stat |= create_task_burn_cycles( );
+    assert( stat == 0 );
 
-    hs = HAL_CAN_Init( &can ); assert( hs == HAL_OK );
-    if( hs == HAL_OK )
-    {
-      TaskHandle_t t = 0;
-      BaseType_t const ts =
-        xTaskCreate( &burn_cycles,
-                     "burn_cycles",
-                     512,
-                     0,
-                     tskIDLE_PRIORITY+1,
-                     &t );
-      assert( ts == pdPASS ); (void)sizeof(ts);
-      assert( t != 0 );
+    stat |= create_task_can_rx( );
+    assert( stat == 0 );
+
+    if( stat == 0 )
       vTaskStartScheduler( );
-      hs = HAL_CAN_DeInit( &can ); assert( hs == HAL_OK );
-    }
-    hs = HAL_DeInit( ); assert( hs == HAL_OK );
+    hs = HAL_DeInit( );
+    assert( hs == HAL_OK );
   }
+
   return EXIT_FAILURE;
+}
+
+/**
+* @brief systick handler
+*/
+void
+  SysTick_Handler( void )
+{
+  HAL_IncTick( );
+  if ( xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED )
+    xPortSysTickHandler( );
 }

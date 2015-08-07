@@ -103,9 +103,19 @@ void HAL_MspInit(void)
   };
   HAL_RCC_ClockConfig( &ci, FLASH_LATENCY_2 );
 
-  HAL_NVIC_SetPriority( SysTick_IRQn, 0, 0 );
+  HAL_NVIC_SetPriority( SysTick_IRQn, 15, 0 );
   HAL_SYSTICK_CLKSourceConfig( SYSTICK_CLKSOURCE_HCLK );
   HAL_SYSTICK_Config( HAL_RCC_GetHCLKFreq()/1000 );
+
+  __GPIOC_CLK_ENABLE( );
+  GPIO_InitTypeDef gi =
+  {
+    .Pin    = GPIO_PIN_13,
+    .Mode   = GPIO_MODE_OUTPUT_PP,
+    .Speed  = GPIO_SPEED_LOW
+  };
+  HAL_GPIO_Init( GPIOC, &gi );          /**< load LED: PC13 */
+
 }
 
 /**
@@ -128,18 +138,20 @@ void
     GPIO_InitTypeDef gi;
 
     __CAN1_CLK_ENABLE( );
+    __GPIOB_CLK_ENABLE( );
+    __HAL_CAN_DBG_FREEZE( pcan, ENABLE );
 
     gi.Pin  = GPIO_PIN_8;
     gi.Mode = GPIO_MODE_INPUT;
     gi.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init( GPIOB, &gi );    /**< CAN_RX: PB8 */
+    HAL_GPIO_Init( GPIOB, &gi );          /**< CAN_RX: PB8 */
 
     gi.Pin   = GPIO_PIN_9;
     gi.Mode  = GPIO_MODE_AF_PP;
     gi.Speed = GPIO_SPEED_HIGH;
-    HAL_GPIO_Init( GPIOB, &gi );    /**< CAN_TX: PB9 */
+    HAL_GPIO_Init( GPIOB, &gi );          /**< CAN_TX: PB9 */
 
-    __HAL_AFIO_REMAP_CAN1_2( );     /**< leave USB pins available */
+    __HAL_AFIO_REMAP_CAN1_2( );           /**< leave USB pins available */
 
     HAL_NVIC_SetPriority( USB_HP_CAN1_TX_IRQn, 10, 0 );
     HAL_NVIC_EnableIRQ( USB_HP_CAN1_TX_IRQn );

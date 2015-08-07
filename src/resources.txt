@@ -1,0 +1,24 @@
+Task Priorities:
+0   IDLE                      tskIDLE_PRIORITY    LOWEST
+1   burn_cycles               TASK_BURN_CYCLES_PRIO
+2   task_can_rx               TASK_CAN_RX_PRIO
+3
+4
+...
+29
+30
+31                                                HIGHEST
+
+Hardware Priorities:
+0                                                 HIGHEST
+1
+2
+3
+------------[ configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY ]----------------
+4
+...
+10  CAN
+...
+14
+------------[ configLIBRARY_LOWEST_INTERRUPT_PRIORITY ]---------------------
+15  SysTick/PendSV                                LOWEST
