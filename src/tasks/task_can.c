@@ -12,9 +12,9 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
 #include "stm32f1xx_hal.h"
 #include "task/task_can.h"
-#include <debugio.h>
 #include <assert.h>
 
 /* --| INTERNAL |--------------------------------------------------------- */
@@ -23,15 +23,35 @@ typedef struct
 {
   struct
   {
-    uint32_t pkts;
-  } rx;
+    uint32_t rx;
+    uint32_t tx;
+  } pkt;
   struct
   {
-    uint32_t pkts;
-  } tx;
-} can_cntrs_t;
+    uint32_t sce;
+    uint32_t tx;
+    uint32_t rx0;
+    uint32_t rx1;
+  } irq;
+  struct
+  {
+    uint32_t none;
+    uint32_t ewg;
+    uint32_t epv;
+    uint32_t bof;
+    uint32_t stf;
+    uint32_t form;
+    uint32_t ack;
+    uint32_t br;
+    uint32_t bd;
+    uint32_t crc;
+  } err;
+  uint32_t unh_id;
+} cnt_t;
 
-static can_cntrs_t cc;
+static cnt_t cnt;
+
+static SemaphoreHandle_t sh;
 
 static void
   task_can_rx( void *const parg );
@@ -60,7 +80,7 @@ static CAN_HandleTypeDef can =
   .Init.TTCM      = DISABLE,
   .Init.ABOM      = DISABLE,
   .Init.AWUM      = DISABLE,
-  .Init.NART      = DISABLE,
+  .Init.NART      = DISABLE, /**< always disabled until I can figure out IRQ bug (self recoverable this way) */
   .Init.RFLM      = DISABLE,
   .Init.TXFP      = DISABLE,
 
@@ -74,6 +94,7 @@ static CAN_HandleTypeDef can =
 void
   USB_HP_CAN1_TX_IRQHandler( void )
 {
+  cnt.irq.tx++;
   HAL_CAN_IRQHandler( &can );
 }
 
@@ -83,6 +104,7 @@ void
 void
   USB_LP_CAN1_RX0_IRQHandler( void )
 {
+  cnt.irq.rx0++;
   HAL_CAN_IRQHandler( &can );
 }
 
@@ -92,6 +114,7 @@ void
 void
   CAN1_RX1_IRQHandler( void )
 {
+  cnt.irq.rx1++;
   HAL_CAN_IRQHandler( &can );
 }
 
@@ -101,6 +124,7 @@ void
 void
   CAN1_SCE_IRQHandler( void )
 {
+  cnt.irq.sce++;
   HAL_CAN_IRQHandler( &can );
 }
 
@@ -113,6 +137,9 @@ void
 int
   create_task_can_rx( void )
 {
+  sh = xSemaphoreCreateBinary();
+  assert( sh );
+
   TaskHandle_t t = 0;
   BaseType_t const stat =
     xTaskCreate( &task_can_rx,
@@ -134,14 +161,14 @@ static void
   assert( pcan == &can );
 
   HAL_StatusTypeDef hs = HAL_CAN_Init( pcan );
-  assert( hs == HAL_OK );
+  assert( hs == HAL_OK ); (void)sizeof(hs);
 
   static CAN_FilterConfTypeDef fc =
   {
-    .FilterIdHigh = 0x0600<<5,       /**< ALL low pri, high vol pkts allowed */
-    .FilterIdLow = 0x0600<<5,
-    .FilterMaskIdHigh = 0x0600<<5,   /**< 1100.0000.0000b - ignore rtr/ide/etc */
-    .FilterMaskIdLow = 0x0600<<5,
+    .FilterIdHigh = 0x0000<<5,
+    .FilterIdLow = 0x0000<<5,
+    .FilterMaskIdHigh = 0x0000<<5,   /**< let 'em all through */
+    .FilterMaskIdLow = 0x0000<<5,
     .FilterFIFOAssignment = CAN_FILTER_FIFO0,
     .FilterNumber = 0,
     .FilterMode = CAN_FILTERMODE_IDMASK,
@@ -152,12 +179,7 @@ static void
   hs = HAL_CAN_ConfigFilter( pcan, &fc );
   assert( hs == HAL_OK );
 
-  /* TODO: grab first pkt buffer from pool and
-           hook before turning on int's */
   assert( pcan->pRxMsg == &rx_msg );
-
-  hs = HAL_CAN_Receive_IT( pcan, CAN_FIFO0 );
-  assert( hs == HAL_OK );
 
   for( ;; )
   {
@@ -165,12 +187,24 @@ static void
     assert( pcan->pRxMsg );
     assert( pcan->pTxMsg );
 
-    debug_printf( "cc.rx.pkts: %d\r\n", cc.rx.pkts );
-    debug_printf( "   tx.pkts: %d\r\n", cc.tx.pkts );
-    vTaskDelay( 500 );
-
-    hs = HAL_CAN_Transmit_IT( pcan );
+    hs = HAL_CAN_Receive_IT( pcan, CAN_FIFO0 );
     assert( hs == HAL_OK );
+    if( xSemaphoreTake(sh, portMAX_DELAY) == pdTRUE )
+    {
+      assert( pcan->pRxMsg->FIFONumber == CAN_FIFO0 );
+      if( (pcan->pRxMsg->IDE == CAN_ID_STD) &&
+          (pcan->pRxMsg->RTR == CAN_RTR_DATA) )
+      {
+        switch( pcan->pRxMsg->StdId )
+        {
+          case 0x100:   break;  /**< hardcode V0 -> post to display thread */
+          case 0x101:   break;  /**< V1 */
+          case 0x102:   break;  /**< V2 */
+          default:
+            cnt.unh_id++;
+        }
+      }
+    }
   }
 }
 
@@ -179,54 +213,46 @@ void  /* FROM IRQ CONTEXT */
 {
   assert( pcan == &can );
   assert( pcan->pTxMsg == &tx_msg );
-
-  cc.tx.pkts++;
-  pcan->pTxMsg->StdId++;
-  if( pcan->pTxMsg->StdId > 0x7ff )
-    pcan->pTxMsg->StdId = 0;
+  cnt.pkt.tx++;
 }
 
 void  /* FROM IRQ CONTEXT */
   HAL_CAN_RxCpltCallback( CAN_HandleTypeDef *const pcan )
 {
   assert( pcan == &can );
-  cc.rx.pkts++;
-
   assert( pcan->pRxMsg == &rx_msg );
-  HAL_StatusTypeDef const hs = HAL_CAN_Receive_IT( pcan, pcan->pRxMsg->FIFONumber );
-  assert( hs == HAL_OK );
+  cnt.pkt.rx++;
+  xSemaphoreGiveFromISR( sh, 0 );
 }
 
 void  /* FROM IRQ CONTEXT */
   HAL_CAN_ErrorCallback( CAN_HandleTypeDef *const pcan )
 {
   assert( pcan == &can );
-  static uint32_t cnt = 0;
 
   uint32_t const err = HAL_CAN_GetError(pcan);
-  debug_printf( "[%d] HAL_CAN_ErrorCallback( ):\r\n", ++cnt );
   if( err == HAL_CAN_ERROR_NONE )
-    debug_runtime_error( "     HAL_CAN_ERROR_NONE(!)" );
+    cnt.err.none++;
   else
   {
     if( err & HAL_CAN_ERROR_EWG )
-      debug_puts( "     HAL_CAN_ERROR_EWG" );
+      cnt.err.ewg++;
     if( err & HAL_CAN_ERROR_EPV )
-      debug_puts( "     HAL_CAN_ERROR_EPV" );
+      cnt.err.epv++;
     if( err & HAL_CAN_ERROR_BOF )
-      debug_puts( "     HAL_CAN_ERROR_BOF" );
+      cnt.err.bof++;
     if( err & HAL_CAN_ERROR_STF )
-      debug_puts( "     HAL_CAN_ERROR_STF" );
+      cnt.err.stf++;
     if( err & HAL_CAN_ERROR_FOR )
-      debug_puts( "     HAL_CAN_ERROR_FOR" );
+      cnt.err.form++;
     if( err & HAL_CAN_ERROR_ACK )
-      debug_puts( "     HAL_CAN_ERROR_ACK" );
+      cnt.err.ack++;
     if( err & HAL_CAN_ERROR_BR )
-      debug_puts( "     HAL_CAN_ERROR_BR" );
+      cnt.err.br++;
     if( err & HAL_CAN_ERROR_BD )
-      debug_puts( "     HAL_CAN_ERROR_BD" );
+      cnt.err.bd++;
     if( err & HAL_CAN_ERROR_CRC )
-      debug_puts( "     HAL_CAN_ERROR_CRC" );
+      cnt.err.crc++;
 
     __HAL_CAN_CLEAR_FLAG( pcan, CAN_FLAG_ERRI );
   }

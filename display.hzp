@@ -16,7 +16,7 @@
       arm_linker_stack_size="256"
       arm_simulator_memory_simulation_filename="$(TargetsDir)/STM32/STM32SimulatorMemory.dll"
       arm_simulator_memory_simulation_parameter="STM32F103C8;0x10000;0x5000"
-      arm_target_connect_with_reset="No"
+      arm_target_connect_with_reset="Yes"
       arm_target_debug_interface_type="ADIv5"
       arm_target_interface_type="SWD"
       arm_target_loader_applicable_loaders="Flash"
@@ -53,6 +53,7 @@
       <folder Name="inc">
         <file file_name="$(ProjectDir)/src/inc/stm32f1xx_hal_conf.h" />
         <file file_name="$(ProjectDir)/src/inc/FreeRTOSConfig.h" />
+        <file file_name="$(ProjectDir)/src/inc/disp.h" />
         <folder Name="task">
           <file file_name="$(ProjectDir)/src/inc/task/task_can.h" />
         </folder>
@@ -67,6 +68,7 @@
           c_user_include_directories=".;$(TargetsDir)/STM32" />
       </file>
       <file file_name="$(ProjectDir)/src/main.c" />
+      <file file_name="$(ProjectDir)/src/disp.c" />
       <file file_name="$(ProjectDir)/src/system_stm32f1xx.c" />
       <file file_name="$(ProjectDir)/src/stm32f1xx_hal_msp.c" />
       <file file_name="$(ProjectDir)/src/freertos.c" />

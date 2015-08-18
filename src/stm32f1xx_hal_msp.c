@@ -78,8 +78,8 @@
   */
 void HAL_MspInit(void)
 {
-  __HAL_AFIO_REMAP_SWJ_NOJTAG();
   __HAL_RCC_AFIO_CLK_ENABLE( );
+  __HAL_AFIO_REMAP_SWJ_NOJTAG();
   HAL_NVIC_SetPriorityGrouping( NVIC_PRIORITYGROUP_4 );
 
   RCC_OscInitTypeDef oi =
@@ -115,6 +115,12 @@ void HAL_MspInit(void)
     .Speed  = GPIO_SPEED_LOW
   };
   HAL_GPIO_Init( GPIOC, &gi );          /**< load LED: PC13 */
+
+  __GPIOA_CLK_ENABLE( );
+  gi.Pin   = GPIO_PIN_0;
+  gi.Mode  = GPIO_MODE_INPUT;
+  gi.Pull  = GPIO_PULLUP;
+  HAL_GPIO_Init( GPIOA, &gi );          /**< input button: PA0 */
 
 }
 

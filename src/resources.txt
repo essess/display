@@ -1,6 +1,6 @@
 Task Priorities:
 0   IDLE                      tskIDLE_PRIORITY    LOWEST
-1   burn_cycles               TASK_BURN_CYCLES_PRIO
+1   task_button               TASK_BUTTON_PRIO
 2   task_can_rx               TASK_CAN_RX_PRIO
 3
 4

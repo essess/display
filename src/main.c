@@ -12,37 +12,44 @@
 #include "task.h"
 
 #include "task/task_can.h"
+#include "disp.h"
 
 extern void xPortSysTickHandler( void );
 
-#define TASK_BURN_CYCLES_PRIO     ( 1 )
-#define TASK_BURN_CYCLES_STKSIZE  ( 1024 )
+#define TASK_BUTTON_PRIO      ( 1 )
+#define TASK_BUTTON_STKSIZE   ( 256 )
 
 static void
-  burn_cycles( void *parg )
+  task_button( void *parg )
 {
   (void)parg;           /**< unused */
 
-  /* watch load indicator led while performing the following: */
+  vTaskDelay( 250 );
   for(;;)
   {
-    /* dominate core for a few ms ... */
-    HAL_Delay( 300 );
-    /* be nice for a few ms ...       */
-    vTaskDelay( 700 );
+    if( HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_RESET )
+    {
+      vTaskDelay( 30 );   /**< debounce */
+      if( HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_RESET )
+      {
+        disp_next();
+        vTaskDelay( 400 );  /**< repeat lockout */
+      }
+    }
+    vTaskDelay( 50 );
   }
 }
 
 static int
-  create_task_burn_cycles( void )
+  create_task_button( void )
 {
   TaskHandle_t t = 0;
   BaseType_t const stat =
-    xTaskCreate( &burn_cycles,
-                 "burn_cycles",
-                 TASK_BURN_CYCLES_STKSIZE,
+    xTaskCreate( &task_button,
+                 "task_button",
+                 TASK_BUTTON_STKSIZE,
                  0,
-                 TASK_BURN_CYCLES_PRIO,
+                 TASK_BUTTON_PRIO,
                  &t );
   assert( stat == pdPASS );
   assert( t );
@@ -63,7 +70,9 @@ int
   {
     int stat = 0;
 
-    stat |= create_task_burn_cycles( );
+    disp_init( );
+
+    stat |= create_task_button( );
     assert( stat == 0 );
 
     stat |= create_task_can_rx( );
