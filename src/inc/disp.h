@@ -19,6 +19,17 @@ extern "C"
 
 /**
  * @public
+ * @brief
+ */
+typedef enum
+{
+  SCRN0 = 0,
+  SCRN1,
+  SCRN2
+} disp_idx_t;
+
+/**
+ * @public
  * @brief initialize display
  */
 void
@@ -30,6 +41,18 @@ void
  */
 void
   disp_next( void );
+
+/**
+ * @public
+ * @brief cycle to next displayed value
+ * @param[in] i screen index
+ * @param[in] pline0 first line
+ * @param[in] pline1 second line
+ */
+void
+  disp( disp_idx_t i,
+        char *pline0,
+        char *pline1 );
 
 #ifdef __cplusplus
 }

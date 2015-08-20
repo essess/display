@@ -15,6 +15,7 @@
 
 /* --| INTERNAL |--------------------------------------------------------- */
 
+static disp_idx_t idx;
 static GPIO_InitTypeDef gi;
 
 /**
@@ -41,7 +42,7 @@ static inline void
  * @internal
  * @brief
  */
-static inline void
+static void
   _wr( uint16_t d )
 {
   /* a4->a7 - output, _e_lo() on entry */
@@ -63,7 +64,7 @@ static inline void
  * @internal
  * @brief
  */
-static inline uint8_t
+static uint8_t
   _rd( void )
 {
   /* a4->a7 - input, _e_lo() on entry */
@@ -71,12 +72,12 @@ static inline uint8_t
   HAL_GPIO_Init( GPIOA, &gi );
   HAL_GPIO_WritePin( GPIOA, GPIO_PIN_2, GPIO_PIN_SET );    /* rw/a2 - 1 */
   _e_hi();
-  GPIO_PinState ps =
-    HAL_GPIO_ReadPin( GPIOA, gi.Pin );        /**< d7->d4 emitted first */
+  uint16_t ps;
+  ps   = GPIOA->IDR & 0x00f0;     /**< d7->d4 emitted first */
   ps <<= 4;
   _e_lo();
   _e_hi();
-  ps |= HAL_GPIO_ReadPin( GPIOA, gi.Pin );
+  ps  |= GPIOA->IDR & 0x00f0;
   ps >>= 4;
   _e_lo();
   return (uint8_t)ps;
@@ -108,7 +109,7 @@ static inline void
  * @internal
  * @brief
  */
-static inline uint8_t
+static uint8_t
   _rd_ir( void )
 {
   _ir();
@@ -119,7 +120,7 @@ static inline uint8_t
  * @internal
  * @brief
  */
-static inline uint8_t
+static uint8_t
   _rd_dr( void )
 {
   _dr();
@@ -130,7 +131,7 @@ static inline uint8_t
  * @internal
  * @brief
  */
-static inline int
+static int
   _busy( )
 {
   return _rd_ir() & (1<<7);
@@ -140,7 +141,7 @@ static inline int
  * @internal
  * @brief
  */
-static inline void
+static void
   _wr_ir( uint8_t ir )
 {
   _ir();
@@ -152,21 +153,33 @@ static inline void
  * @internal
  * @brief
  */
-static inline void
+static void
   _wr_dr( uint8_t dr )
 {
   _dr();
   _wr( dr );
+  while( _busy() );
 }
 
 /**
  * @internal
  * @brief
  */
-static inline uint8_t
+static uint8_t
   _ac( )
 {
   return _rd_ir() & ~(1<<7);
+}
+
+/**
+ * @internal
+ * @brief at current ddram address
+ */
+static void
+  _wr_line( char *pline )
+{
+  for( int i=0; i<16 ;i++ )
+    _wr_dr( pline[i] );
 }
 
 /* --| PUBLIC   |--------------------------------------------------------- */
@@ -182,7 +195,7 @@ void
     rw - a2
      e - a3
 
-    4bit i/o (leave floating initially):
+    4bit i/o:
       d0 - x    d4 - a4
       d1 - x    d5 - a5
       d2 - x    d6 - a6
@@ -193,7 +206,7 @@ void
   gi.Pin    = GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 |
               GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
   gi.Mode   = GPIO_MODE_OUTPUT_PP;
-  gi.Speed  = GPIO_SPEED_MEDIUM;
+  gi.Speed  = GPIO_SPEED_LOW;
   HAL_GPIO_WritePin( GPIOA, gi.Pin, GPIO_PIN_RESET );
   HAL_GPIO_WritePin( GPIOA, GPIO_PIN_4|GPIO_PIN_5, GPIO_PIN_SET );
   HAL_GPIO_Init( GPIOA, &gi );
@@ -214,8 +227,8 @@ void
   _e_hi();
   _e_lo();          /**< finalize 4bit mode         */
   _wr_ir( 0x28 );   /**< 2line 5x8 font             */
-  _wr_ir( 0x0c );
-  _wr_ir( 0x06 );
+  _wr_ir( 0x08 | (1<<2) | (0<<1) | (0<<0) );    /**< disp on */
+  _wr_ir( 0x06 );   /**< entry mode inc, no shift   */
   _wr_ir( 0x01 );   /**< clear display              */
 }
 
@@ -226,6 +239,28 @@ void
 void
   disp_next( void )
 {
-  // test code junk
-  _wr_dr('*');
+  __disable_irq();
+  idx = ++idx<=SCRN2 ? idx : 0;  /**< clamp */
+  __enable_irq();
+}
+
+/**
+ * @public
+ * @brief cycle to next displayed value
+ * @param[in] i screen index
+ * @param[in] pline0 first line
+ * @param[in] pline1 second line
+ */
+void
+  disp( disp_idx_t i,
+        char *pline0,
+        char *pline1 )
+{
+  if( i == idx )
+  {
+    _wr_ir( 0x80 | 0x00 );      /**< move to start of line 1 */
+    _wr_line( pline0 );
+    _wr_ir( 0x80 | 0x40 );      /**< move to start of line 2 */
+    _wr_line( pline1 );
+  }
 }

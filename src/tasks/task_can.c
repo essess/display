@@ -15,6 +15,7 @@
 #include "semphr.h"
 #include "stm32f1xx_hal.h"
 #include "task/task_can.h"
+#include "disp.h"
 #include <assert.h>
 
 /* --| INTERNAL |--------------------------------------------------------- */
@@ -195,11 +196,18 @@ static void
       if( (pcan->pRxMsg->IDE == CAN_ID_STD) &&
           (pcan->pRxMsg->RTR == CAN_RTR_DATA) )
       {
+        static char lb[16];     /**< line buffer */
         switch( pcan->pRxMsg->StdId )
         {
-          case 0x100:   break;  /**< hardcode V0 -> post to display thread */
-          case 0x101:   break;  /**< V1 */
-          case 0x102:   break;  /**< V2 */
+          case 0x000:
+            disp( SCRN0, "SCRN0           ", "Time            ");
+        //    break;
+          case 0x101:
+            disp( SCRN1, "SCRN1           ", "0x101           ");
+        //    break;
+          case 0x102:
+            disp( SCRN2, "SCRN2           ", "0x102           ");
+            break;
           default:
             cnt.unh_id++;
         }
