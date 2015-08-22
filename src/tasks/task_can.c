@@ -13,7 +13,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
-#include "stm32f1xx_hal.h"
+#include "stm32f1xx.h"
 #include "task/task_can.h"
 #include "disp.h"
 #include <assert.h>
@@ -196,17 +196,32 @@ static void
       if( (pcan->pRxMsg->IDE == CAN_ID_STD) &&
           (pcan->pRxMsg->RTR == CAN_RTR_DATA) )
       {
-        static char lb[16];     /**< line buffer */
+        static char lb[16+1];   /**< line buffer */
         switch( pcan->pRxMsg->StdId )
         {
-          case 0x000:
-            disp( SCRN0, "SCRN0           ", "Time            ");
-        //    break;
           case 0x101:
-            disp( SCRN1, "SCRN1           ", "0x101           ");
-        //    break;
+            *(uint32_t*)(&pcan->pRxMsg->Data[0]) =
+              __REV( *(uint32_t*)(&pcan->pRxMsg->Data[0]) );
+            snprintf( lb, 16+1, "%d               ", *(uint32_t*)(&pcan->pRxMsg->Data[0]) );
+            disp( SCRN0, lb, "Time            ");
+            break;
           case 0x102:
-            disp( SCRN2, "SCRN2           ", "0x102           ");
+            *(uint16_t*)(&pcan->pRxMsg->Data[0]) =
+              __REV16( *(uint16_t*)(&pcan->pRxMsg->Data[0]) );
+            snprintf( lb, 16+1, "%d               ", *(uint16_t*)(&pcan->pRxMsg->Data[0]) );
+            disp( SCRN1, lb, "TPS             ");
+            break;
+          case 0x103:
+            *(uint16_t*)(&pcan->pRxMsg->Data[0]) =
+              __REV16( *(uint16_t*)(&pcan->pRxMsg->Data[0]) );
+            snprintf( lb, 16+1, "%d               ", *(uint16_t*)(&pcan->pRxMsg->Data[0]) );
+            disp( SCRN2, lb, "MAP             ");
+            break;
+          case 0x104:
+            *(uint16_t*)(&pcan->pRxMsg->Data[0]) =
+              __REV16( *(uint16_t*)(&pcan->pRxMsg->Data[0]) );
+            snprintf( lb, 16+1, "%d                ", *(uint16_t*)(&pcan->pRxMsg->Data[0]) );
+            disp( SCRN3, lb, "RPM             ");
             break;
           default:
             cnt.unh_id++;

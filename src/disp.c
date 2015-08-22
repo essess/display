@@ -240,7 +240,7 @@ void
   disp_next( void )
 {
   __disable_irq();
-  idx = ++idx<=SCRN2 ? idx : 0;  /**< clamp */
+  idx = ++idx<=SCRN3 ? idx : 0;  /**< clamp */
   __enable_irq();
 }
 

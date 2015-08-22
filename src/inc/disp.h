@@ -25,7 +25,8 @@ typedef enum
 {
   SCRN0 = 0,
   SCRN1,
-  SCRN2
+  SCRN2,
+  SCRN3
 } disp_idx_t;
 
 /**
