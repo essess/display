@@ -1,0 +1,7 @@
+Display v1 BOM
+
+vbat to 5v : http://www.ebay.com/itm/301656941112
+stlinkv2 : http://www.ebay.com/itm/141657986909
+display: http://www.ebay.com/itm/111387382837
+micro: http://www.ebay.com/itm/281670677060
+can xcvr: http://www.ebay.com/itm/400910229676
